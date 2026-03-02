@@ -21,6 +21,13 @@
               no-caps
               class="text-weight-bold text-dark"
             />
+            <q-btn
+              flat
+              label="Directory"
+              to="/employees"
+              no-caps
+              class="text-weight-medium text-grey-8"
+            />
           </template>
           <template v-else>
             <q-btn flat label="Features" no-caps class="text-weight-medium text-grey-8" />

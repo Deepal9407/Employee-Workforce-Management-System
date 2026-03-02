@@ -10,6 +10,11 @@ const routes = [
         meta: { requiresAuth: true },
       },
       {
+        path: 'employees',
+        component: () => import('pages/employees/EmployeeDirectoryPage.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
         path: 'login',
         component: () => import('pages/auth/LoginPage.vue'),
         meta: { requiresGuest: true },
