@@ -1,81 +1,168 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
+  <q-layout view="hHh Lpr fff">
+    <!-- Header -->
+    <q-header elevated class="bg-white text-dark q-py-xs">
       <q-toolbar>
-        <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
+        <q-btn flat no-caps to="/">
+          <q-avatar size="32px" class="q-mr-sm bg-primary text-white">
+            <q-icon name="apartment" />
+          </q-avatar>
+          <div class="text-weight-bold text-h6 text-primary">WorkforcePro</div>
+        </q-btn>
 
-        <q-toolbar-title> Quasar App </q-toolbar-title>
+        <q-space />
 
-        <div>Quasar v{{ $q.version }}</div>
+        <div class="gt-xs">
+          <q-btn flat label="Features" no-caps class="text-weight-medium text-grey-8" />
+          <q-btn flat label="Modules" no-caps class="text-weight-medium text-grey-8" />
+          <q-btn flat label="Preview" no-caps class="text-weight-medium text-grey-8" />
+          <q-btn flat label="Pricing" no-caps class="text-weight-medium text-grey-8" />
+        </div>
+
+        <q-space />
+
+        <div class="gt-xs">
+          <q-btn
+            flat
+            label="Login"
+            to="/login"
+            no-caps
+            class="text-weight-bold text-primary q-mr-sm"
+          />
+          <q-btn
+            unelevated
+            color="primary"
+            label="Request Demo"
+            to="/register"
+            no-caps
+            class="text-weight-bold"
+          />
+        </div>
+
+        <q-btn flat round dense icon="menu" class="lt-sm text-grey-8" />
       </q-toolbar>
     </q-header>
-
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
-      <q-list>
-        <q-item-label header> Essential Links </q-item-label>
-
-        <EssentialLink v-for="link in linksList" :key="link.title" v-bind="link" />
-      </q-list>
-    </q-drawer>
 
     <q-page-container>
       <router-view />
     </q-page-container>
+
+    <!-- Footer -->
+    <q-footer class="bg-dark text-white">
+      <div class="q-pa-xl">
+        <div class="row q-col-gutter-xl">
+          <div class="col-12 col-md-4">
+            <div class="text-h6 text-weight-bold q-mb-md flex items-center">
+              <q-icon name="apartment" size="md" class="q-mr-sm text-secondary" />
+              WorkforcePro
+            </div>
+            <p class="text-grey-4 text-body2">
+              Advanced Employee Management & Workforce Tracking System. Streamlining enterprise
+              operations worldwide.
+            </p>
+          </div>
+
+          <div class="col-12 col-sm-6 col-md-2">
+            <div class="text-subtitle1 text-weight-bold q-mb-md">Product</div>
+            <div class="column q-gutter-y-sm">
+              <a
+                href="#"
+                class="text-grey-4 text-body2 non-selectable"
+                style="text-decoration: none"
+                >Features</a
+              >
+              <a
+                href="#"
+                class="text-grey-4 text-body2 non-selectable"
+                style="text-decoration: none"
+                >Pricing</a
+              >
+              <a
+                href="#"
+                class="text-grey-4 text-body2 non-selectable"
+                style="text-decoration: none"
+                >Security</a
+              >
+              <a
+                href="#"
+                class="text-grey-4 text-body2 non-selectable"
+                style="text-decoration: none"
+                >Updates</a
+              >
+            </div>
+          </div>
+
+          <div class="col-12 col-sm-6 col-md-2">
+            <div class="text-subtitle1 text-weight-bold q-mb-md">Company</div>
+            <div class="column q-gutter-y-sm">
+              <a
+                href="#"
+                class="text-grey-4 text-body2 non-selectable"
+                style="text-decoration: none"
+                >About Us</a
+              >
+              <a
+                href="#"
+                class="text-grey-4 text-body2 non-selectable"
+                style="text-decoration: none"
+                >Careers</a
+              >
+              <a
+                href="#"
+                class="text-grey-4 text-body2 non-selectable"
+                style="text-decoration: none"
+                >Contact</a
+              >
+              <a
+                href="#"
+                class="text-grey-4 text-body2 non-selectable"
+                style="text-decoration: none"
+                >Partners</a
+              >
+            </div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <div class="text-subtitle1 text-weight-bold q-mb-md">Subscribe to our Newsletter</div>
+            <p class="text-grey-4 text-body2 q-mb-md">
+              Stay updated with the latest in HR tech and workforce management.
+            </p>
+            <div class="row no-wrap">
+              <q-input outlined dense bg-color="white" placeholder="Enter your email" class="col" />
+              <q-btn unelevated color="secondary" label="Subscribe" class="q-ml-sm" no-caps />
+            </div>
+          </div>
+        </div>
+
+        <q-separator color="grey-8" class="q-my-lg" />
+
+        <div class="row items-center justify-between text-grey-5 text-body2">
+          <div>
+            <div>&copy; 2026 WorkforcePro Systems. All rights reserved.</div>
+            <div class="q-mt-xs">
+              Powered by <span class="text-weight-bold text-white">DJ BOTHUB Lanka (Pvt) Ltd</span>
+            </div>
+          </div>
+          <div class="row q-gutter-md">
+            <q-icon name="fab fa-twitter" size="sm" class="cursor-pointer hover-text-white" />
+            <q-icon name="fab fa-linkedin" size="sm" class="cursor-pointer hover-text-white" />
+            <q-icon name="fab fa-github" size="sm" class="cursor-pointer hover-text-white" />
+          </div>
+        </div>
+      </div>
+    </q-footer>
   </q-layout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import EssentialLink from 'components/EssentialLink.vue'
-
-const linksList = [
-  {
-    title: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev',
-  },
-  {
-    title: 'Github',
-    caption: 'github.com/quasarframework',
-    icon: 'code',
-    link: 'https://github.com/quasarframework',
-  },
-  {
-    title: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
-    icon: 'chat',
-    link: 'https://chat.quasar.dev',
-  },
-  {
-    title: 'Forum',
-    caption: 'forum.quasar.dev',
-    icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev',
-  },
-  {
-    title: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev',
-  },
-  {
-    title: 'Facebook',
-    caption: '@QuasarFramework',
-    icon: 'public',
-    link: 'https://facebook.quasar.dev',
-  },
-  {
-    title: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
-    icon: 'favorite',
-    link: 'https://awesome.quasar.dev',
-  },
-]
-
-const leftDrawerOpen = ref(false)
-
-function toggleLeftDrawer() {
-  leftDrawerOpen.value = !leftDrawerOpen.value
-}
+//
 </script>
+
+<style lang="scss">
+.hover-text-white {
+  transition: color 0.3s;
+  &:hover {
+    color: white;
+  }
+}
+</style>
