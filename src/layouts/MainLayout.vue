@@ -13,30 +13,52 @@
         <q-space />
 
         <div class="gt-xs">
-          <q-btn flat label="Features" no-caps class="text-weight-medium text-grey-8" />
-          <q-btn flat label="Modules" no-caps class="text-weight-medium text-grey-8" />
-          <q-btn flat label="Preview" no-caps class="text-weight-medium text-grey-8" />
-          <q-btn flat label="Pricing" no-caps class="text-weight-medium text-grey-8" />
+          <template v-if="user">
+            <q-btn
+              flat
+              label="Dashboard"
+              to="/dashboard"
+              no-caps
+              class="text-weight-bold text-dark"
+            />
+          </template>
+          <template v-else>
+            <q-btn flat label="Features" no-caps class="text-weight-medium text-grey-8" />
+            <q-btn flat label="Modules" no-caps class="text-weight-medium text-grey-8" />
+            <q-btn flat label="Pricing" no-caps class="text-weight-medium text-grey-8" />
+          </template>
         </div>
 
         <q-space />
 
         <div class="gt-xs">
-          <q-btn
-            flat
-            label="Login"
-            to="/login"
-            no-caps
-            class="text-weight-bold text-primary q-mr-sm"
-          />
-          <q-btn
-            unelevated
-            color="primary"
-            label="Request Demo"
-            to="/register"
-            no-caps
-            class="text-weight-bold"
-          />
+          <template v-if="user">
+            <q-btn
+              unelevated
+              color="negative"
+              label="Sign Out"
+              no-caps
+              class="text-weight-bold"
+              @click="handleSignOut"
+            />
+          </template>
+          <template v-else>
+            <q-btn
+              flat
+              label="Login"
+              to="/login"
+              no-caps
+              class="text-weight-bold text-primary q-mr-sm"
+            />
+            <q-btn
+              unelevated
+              color="primary"
+              label="Request Demo"
+              to="/register"
+              no-caps
+              class="text-weight-bold"
+            />
+          </template>
         </div>
 
         <q-btn flat round dense icon="menu" class="lt-sm text-grey-8" />
@@ -155,7 +177,36 @@
 </template>
 
 <script setup>
-//
+import { ref, onMounted } from 'vue'
+import { supabase } from 'src/boot/supabase'
+import { useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
+
+const router = useRouter()
+const $q = useQuasar()
+const user = ref(null)
+
+onMounted(() => {
+  // Get initial session
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    user.value = session?.user || null
+  })
+
+  // Listen for auth changes
+  supabase.auth.onAuthStateChange((_event, session) => {
+    user.value = session?.user || null
+  })
+})
+
+const handleSignOut = async () => {
+  const { error } = await supabase.auth.signOut()
+  if (error) {
+    $q.notify({ type: 'negative', message: 'Error signing out' })
+  } else {
+    $q.notify({ type: 'positive', message: 'Signed out successfully' })
+    router.push('/login')
+  }
+}
 </script>
 
 <style lang="scss">

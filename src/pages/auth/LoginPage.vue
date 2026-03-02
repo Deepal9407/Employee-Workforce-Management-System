@@ -172,8 +172,8 @@ const handleLogin = async () => {
       position: 'top-right',
     })
 
-    // Redirect to dashboard (for now we can redirect back to home or a protected route)
-    router.push('/')
+    // Redirect to dashboard
+    router.push('/dashboard')
   } catch (error) {
     $q.notify({
       type: 'negative',
