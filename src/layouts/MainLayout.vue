@@ -28,6 +28,13 @@
               no-caps
               class="text-weight-medium text-grey-8"
             />
+            <q-btn
+              flat
+              label="Leaves"
+              to="/leaves"
+              no-caps
+              class="text-weight-medium text-grey-8"
+            />
           </template>
           <template v-else>
             <q-btn flat label="Features" no-caps class="text-weight-medium text-grey-8" />

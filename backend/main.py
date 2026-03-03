@@ -189,3 +189,183 @@ def update_employee(epf_no: str, emp: dict):
 @app.get("/")
 def read_root():
     return {"message": "Welcome to WorkforcePro Backend API"}
+
+# ---------------------------------------------------------
+# ATTENDANCE & LEAVE AUTOMATION LOGIC
+# ---------------------------------------------------------
+
+class PunchData(BaseModel):
+    fingerprint_id: str
+    punch_time: str # ISO format string e.g., '2026-03-03T08:15:00Z'
+
+class LeaveRequest(BaseModel):
+    epf_no: str
+    leave_type: str
+    start_date: str
+    end_date: str
+    days: float
+    reason: str
+
+SHIFT_START_TIME = datetime.strptime("08:00:00", "%H:%M:%S").time()
+SHIFT_END_TIME = datetime.strptime("17:00:00", "%H:%M:%S").time()
+
+def deduct_leave(epf_no: str, deduction_amount: float, leave_type: str = "casual_used"):
+    """Deduct leave by incrementing the used counter in leave_balances"""
+    try:
+        current_year = datetime.now().year
+        # Get balance
+        balance_res = supabase.table("leave_balances").select("*").eq("epf_no", epf_no).eq("year", current_year).execute()
+        if balance_res.data:
+            current_used = float(balance_res.data[0].get(leave_type, 0))
+            new_used = current_used + deduction_amount
+            supabase.table("leave_balances").update({leave_type: new_used}).eq("id", balance_res.data[0]["id"]).execute()
+        else:
+            # Create if not exists
+            new_record = {"epf_no": epf_no, "year": current_year, leave_type: deduction_amount}
+            supabase.table("leave_balances").insert(new_record).execute()
+    except Exception as e:
+        print(f"Leave deduction failed: {e}")
+
+@app.post("/attendance/punch")
+def hardware_punch(data: PunchData):
+    try:
+        # 1. Identify Employee
+        emp_res = supabase.table("employees").select("epf_no, full_name").eq("fingerprint_id", data.fingerprint_id).execute()
+        if not emp_res.data:
+            raise HTTPException(status_code=404, detail="Employee not found for this Fingerprint ID")
+        
+        epf_no = emp_res.data[0]["epf_no"]
+        emp_name = emp_res.data[0]["full_name"]
+        
+        punch_dt = datetime.fromisoformat(data.punch_time.replace("Z", "+00:00"))
+        punch_date_str = punch_dt.strftime("%Y-%m-%d")
+        punch_time_obj = punch_dt.time()
+
+        # Check existing attendance for the day
+        att_res = supabase.table("attendance").select("*").eq("epf_no", epf_no).eq("date", punch_date_str).execute()
+        
+        if not att_res.data:
+            # This is an IN Punch
+            late_mins = 0
+            calc_status = "Present"
+            
+            # Auto Status & Late Check
+            # Convert both to minutes from midnight for easy diff
+            p_mins = punch_time_obj.hour * 60 + punch_time_obj.minute
+            s_mins = SHIFT_START_TIME.hour * 60 + SHIFT_START_TIME.minute
+            
+            if p_mins > s_mins:
+                late_mins = p_mins - s_mins
+                calc_status = "Late In"
+                
+                # Auto deduction logic
+                if late_mins > 60:
+                    deduct_leave(epf_no, 0.5) # Deduct half day if more than 1 hour late
+                elif late_mins > 15:
+                    deduct_leave(epf_no, 0.25) # Deduct short leave if more than 15 mins late
+            
+            in_record = {
+                "epf_no": epf_no,
+                "date": punch_date_str,
+                "in_time": data.punch_time,
+                "calculated_status": calc_status,
+                "late_minutes": late_mins
+            }
+            res = supabase.table("attendance").insert(in_record).execute()
+            log_activity("Hardware Punch IN", f"{emp_name} ({epf_no}) punched IN at {punch_time_obj}")
+            return {"success": True, "message": "Punch IN recorded", "data": res.data}
+            
+        else:
+            # This is an OUT Punch (Assumes 1 shift per day for simplicity)
+            existing_record = att_res.data[0]
+            if existing_record["out_time"]:
+                return {"success": False, "message": "Already punched out for the day"}
+            
+            in_dt = datetime.fromisoformat(existing_record["in_time"].replace("Z", "+00:00"))
+            
+            # Calc working hours
+            diff = punch_dt - in_dt
+            working_hours = round(diff.total_seconds() / 3600.0, 2)
+            
+            # Calc OT Hours & Early Out
+            ot_hours = 0
+            early_mins = 0
+            p_mins = punch_time_obj.hour * 60 + punch_time_obj.minute
+            e_mins = SHIFT_END_TIME.hour * 60 + SHIFT_END_TIME.minute
+            
+            if p_mins > e_mins:
+                ot_hours = round((p_mins - e_mins) / 60.0, 2)
+            elif p_mins < e_mins:
+                early_mins = e_mins - p_mins
+                if early_mins > 30:
+                    deduct_leave(epf_no, 0.5) # 0.5 day early leave deduction if leaving > 30 mins early
+            
+            out_update = {
+                "out_time": data.punch_time,
+                "working_hours": working_hours,
+                "ot_hours": ot_hours,
+                "early_out_minutes": early_mins
+            }
+            
+            res = supabase.table("attendance").update(out_update).eq("id", existing_record["id"]).execute()
+            log_activity("Hardware Punch OUT", f"{emp_name} ({epf_no}) punched OUT at {punch_time_obj}")
+            return {"success": True, "message": "Punch OUT recorded", "data": res.data}
+            
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/leaves/apply")
+def apply_leave(req: LeaveRequest):
+    try:
+        # Save leave
+        leave_data = {
+            "epf_no": req.epf_no,
+            "start_date": req.start_date,
+            "end_date": req.end_date,
+            "leave_type": req.leave_type,
+            "days": req.days,
+            "reason": req.reason,
+            "status": "Pending"
+        }
+        res = supabase.table("leaves").insert(leave_data).execute()
+        
+        # Virtual Email Notification
+        print(f"EMAIL NOTIFICATION SENT ✉️: Manager to approve {req.days} days {req.leave_type} leave from {req.epf_no}.")
+        log_activity("Leave Application Application", f"{req.epf_no} applied for {req.days} days leave.")
+        
+        return {"success": True, "message": "Leave application sent for approval", "data": res.data}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+class LeaveAction(BaseModel):
+    status: str # 'Approved' or 'Rejected'
+
+@app.put("/leaves/{leave_id}/status")
+def update_leave_status(leave_id: str, action: LeaveAction):
+    try:
+        if action.status not in ["Approved", "Rejected"]:
+            raise HTTPException(status_code=400, detail="Invalid status")
+            
+        # Update leave status
+        res = supabase.table("leaves").update({"status": action.status}).eq("id", leave_id).execute()
+        
+        if res.data:
+            leave = res.data[0]
+            log_activity("Leave Update", f"Leave {leave_id} was {action.status} for {leave.get('epf_no')}.")
+            
+            # Virtual Email Notification back to employee
+            print(f"EMAIL NOTIFICATION SENT ✉️: Dear Employee {leave.get('epf_no')}, your leave request was {action.status}.")
+            
+        return {"success": True, "message": f"Leave {action.status.lower()} successfully", "data": res.data}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/leaves")
+def get_all_leaves():
+    try:
+        # Fetch with employee details via join
+        res = supabase.table("leaves").select("*, employees(full_name, department)").order("created_at", desc=True).execute()
+        return {"success": True, "data": res.data}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

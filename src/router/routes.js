@@ -15,6 +15,11 @@ const routes = [
         meta: { requiresAuth: true },
       },
       {
+        path: 'leaves',
+        component: () => import('pages/leaves/LeaveManagementPage.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
         path: 'login',
         component: () => import('pages/auth/LoginPage.vue'),
         meta: { requiresGuest: true },
