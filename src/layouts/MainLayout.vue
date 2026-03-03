@@ -59,7 +59,7 @@
               v-if="userRole === 'super_admin'"
               flat
               label="Admin Settings"
-              to="/"
+              to="/admin/settings"
               no-caps
               class="text-weight-bold text-negative"
             />
@@ -230,7 +230,12 @@ const user = ref(null)
 const userRole = ref('')
 
 const fetchRole = async (userId) => {
-  const { data } = await supabase.from('user_roles').select('role').eq('user_id', userId).single()
+  const { data, error } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .single()
+  console.log('Role Fetch Data:', data, 'Error:', error)
   if (data) {
     userRole.value = data.role
   } else {

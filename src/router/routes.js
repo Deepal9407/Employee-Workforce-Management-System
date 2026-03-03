@@ -25,6 +25,11 @@ const routes = [
         meta: { requiresAuth: true },
       },
       {
+        path: 'admin/settings',
+        component: () => import('pages/admin/SettingsPage.vue'),
+        meta: { requiresAuth: true }, // We'll handle role check in UI or router later
+      },
+      {
         path: 'login',
         component: () => import('pages/auth/LoginPage.vue'),
         meta: { requiresGuest: true },
