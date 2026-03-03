@@ -443,3 +443,122 @@ def get_all_leaves():
         return {"success": True, "data": res.data}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/dashboard/data")
+def get_dashboard_data():
+    try:
+        today = datetime.now()
+        today_str = today.strftime("%Y-%m-%d")
+        
+        # 1. Stats
+        active_emps_res = supabase.table("employees").select("epf_no, department, birthday, full_name").eq("status", "Active").execute()
+        active_emps = active_emps_res.data if active_emps_res.data else []
+        total_employees = len(active_emps)
+        
+        att_res = supabase.table("attendance").select("calculated_status").eq("date", today_str).execute()
+        att_data = att_res.data if att_res.data else []
+        total_present = sum(1 for a in att_data if "Present" in a.get("calculated_status", ""))
+        total_late = sum(1 for a in att_data if "Late" in a.get("calculated_status", ""))
+        total_present += total_late
+        
+        leaves_res = supabase.table("leaves").select("id, start_date, end_date, employees(full_name, department)").eq("status", "Approved").lte("start_date", today_str).gte("end_date", today_str).execute()
+        leaves_today = leaves_res.data if leaves_res.data else []
+        total_leave = len(leaves_today)
+        
+        absent_today = max(0, total_employees - total_present - total_leave)
+        
+        # 2. Distribution Data
+        dept_counts = {}
+        today_events = []
+        for emp in active_emps:
+            dept = emp.get("department", "Unassigned")
+            dept_counts[dept] = dept_counts.get(dept, 0) + 1
+            
+            # Check Birthday
+            bday = emp.get("birthday")
+            if bday:
+                try:
+                    b_dt = datetime.strptime(bday, "%Y-%m-%d")
+                    if b_dt.month == today.month and b_dt.day == today.day:
+                        today_events.append({
+                            "id": f"bd-{emp['epf_no']}",
+                            "name": emp.get("full_name", ""),
+                            "department": dept,
+                            "type": "Birthday"
+                        })
+                except:
+                    pass
+
+        dist_labels = list(dept_counts.keys())
+        dist_series = list(dept_counts.values())
+        
+        # Add leave events
+        for lv in leaves_today:
+            emp_info = lv.get("employees", {})
+            today_events.append({
+                "id": f"lv-{lv['id']}",
+                "name": emp_info.get("full_name", "") if emp_info else "Unknown",
+                "department": emp_info.get("department", "Unassigned") if emp_info else "Unassigned",
+                "type": "Leave"
+            })
+            
+        # 3. Activities
+        acts_res = supabase.table("activity_log").select("*").order("timestamp", desc=True).limit(5).execute()
+        
+        def time_ago(ts):
+            try:
+                dt = datetime.fromisoformat(ts.replace("Z", "+00:00")).replace(tzinfo=None)
+                diff = today - dt
+                if diff.days > 0: return f"{diff.days} days ago"
+                if diff.seconds > 3600: return f"{diff.seconds // 3600} hrs ago"
+                if diff.seconds > 60: return f"{diff.seconds // 60} mins ago"
+                return "Just now"
+            except:
+                return ""
+            
+        activities = []
+        for act in (acts_res.data if acts_res.data else []):
+            color = "primary"
+            icon = "info"
+            title = act.get("activity_type", "")
+            
+            if "Leave" in title:
+                 color = "positive"
+                 icon = "event"
+            elif "Update" in title:
+                 color = "warning"
+                 icon = "edit"
+            elif "Added" in title or "Register" in title:
+                 color = "Accent"
+                 icon = "person_add"
+            elif "Punch" in title:
+                 color = "info"
+                 icon = "fingerprint"
+                 
+            activities.append({
+                "title": title,
+                "details": act.get("details", ""),
+                "time": time_ago(act.get("timestamp", "")),
+                "color": color,
+                "icon": icon
+            })
+            
+        return {
+            "success": True,
+            "data": {
+                "stats": {
+                    "totalEmployees": total_employees,
+                    "presentToday": total_present,
+                    "lateArrivals": total_late,
+                    "absentToday": absent_today
+                },
+                "distribution": {
+                    "labels": dist_labels,
+                    "series": dist_series
+                },
+                "events": today_events,
+                "activities": activities
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

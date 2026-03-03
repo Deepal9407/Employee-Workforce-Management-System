@@ -234,8 +234,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import VueApexCharts from 'vue3-apexcharts'
-// import { supabase } from 'src/boot/supabase'
+import { api } from 'src/boot/axios'
+import { useQuasar } from 'quasar'
 
+const $q = useQuasar()
 const loading = ref(false)
 
 // Placeholder Data for Stats
@@ -305,48 +307,36 @@ const eventColumns = [
 const fetchDashboardData = async () => {
   loading.value = true
 
-  // Here we will do the Supabase API calls later to replace placeholders.
-  // For now, load dummy data after artificial delay.
-  setTimeout(() => {
-    stats.value = {
-      totalEmployees: 248,
-      presentToday: 215,
-      lateArrivals: 18,
-      absentToday: 15,
+  try {
+    const res = await api.get('http://localhost:8000/dashboard/data')
+    if (res.data.success) {
+      const dbData = res.data.data
+
+      stats.value = dbData.stats
+
+      // Update distribution chart
+      distributionOptions.value = {
+        ...distributionOptions.value,
+        labels: dbData.distribution.labels.length > 0 ? dbData.distribution.labels : ['No Data'],
+      }
+      distributionSeries.value =
+        dbData.distribution.series.length > 0 ? dbData.distribution.series : [1]
+
+      todayEvents.value = dbData.events
+      activities.value = dbData.activities
     }
-
-    todayEvents.value = [
-      { id: 1, name: 'Saman Kumara', department: 'Engineering', type: 'Birthday' },
-      { id: 2, name: 'Nuwan Perera', department: 'HR', type: 'Leave' },
-      { id: 3, name: 'Kasun Kalhara', department: 'Sales', type: 'Leave' },
-    ]
-
-    activities.value = [
-      {
-        title: 'Leave Approved',
-        details: 'Nuwan Perera (HR) - 2 days',
-        time: '10 mins ago',
-        color: 'positive',
-        icon: 'check_circle',
-      },
-      {
-        title: 'New Hardware Assigned',
-        details: 'MacBook Pro to Kasun',
-        time: '1 hr ago',
-        color: 'accent',
-        icon: 'devices',
-      },
-      {
-        title: 'New Employee Added',
-        details: 'Saman Silva joined Engineering',
-        time: '3 hrs ago',
-        color: 'primary',
-        icon: 'person_add',
-      },
-    ]
-
+  } catch (err) {
+    if (err.message === 'Network Error') {
+      $q.notify({
+        type: 'negative',
+        message: 'Could not connect to Backend on Port 8000. Displaying partial/cached data.',
+      })
+    } else {
+      $q.notify({ type: 'negative', message: 'Failed to fetch dashboard data.' })
+    }
+  } finally {
     loading.value = false
-  }, 800)
+  }
 }
 
 onMounted(() => {
