@@ -315,6 +315,80 @@ def hardware_punch(data: PunchData):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@app.get("/attendance")
+def get_attendance(date: str | None = None):
+    try:
+        query = supabase.table("attendance").select("*, employees(full_name, department)")
+        if date:
+            query = query.eq("date", date)
+        
+        res = query.order("created_at", desc=True).execute()
+        return {"success": True, "data": res.data}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+class ManualPunchData(BaseModel):
+    epf_no: str
+    punch_time: str # ISO string
+
+@app.post("/attendance/manual-punch")
+def manual_punch(data: ManualPunchData):
+    try:
+        # Get employee fingerprint_id to re-use hardware punch logic
+        emp_res = supabase.table("employees").select("fingerprint_id").eq("epf_no", data.epf_no).execute()
+        if not emp_res.data:
+            raise HTTPException(status_code=404, detail="Employee not found")
+        
+        fingerprint_id = emp_res.data[0].get("fingerprint_id")
+        if not fingerprint_id:
+             raise HTTPException(status_code=400, detail="Employee does not have a registered fingerprint ID for logic reuse.")
+             
+        # Reuse existing robust hardware punch logic
+        punch_data = PunchData(fingerprint_id=fingerprint_id, punch_time=data.punch_time)
+        return hardware_punch(punch_data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/attendance/stats/today")
+def get_today_stats():
+    try:
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        res = supabase.table("attendance").select("calculated_status").eq("date", today_str).execute()
+        
+        total_present = 0
+        total_late = 0
+        
+        for r in res.data:
+            status = r.get("calculated_status", "")
+            if "Present" in status:
+                total_present += 1
+            elif "Late" in status:
+                total_late += 1
+                total_present += 1 # Late is also present
+                
+        # Get active employees count
+        emp_res = supabase.table("employees").select("epf_no").eq("status", "Active").execute()
+        total_employees = len(emp_res.data) if emp_res.data else 0
+        
+        # Get leaves today
+        leave_res = supabase.table("leaves").select("id").eq("status", "Approved").lte("start_date", today_str).gte("end_date", today_str).execute()
+        total_leave = len(leave_res.data) if leave_res.data else 0
+        
+        return {
+            "success": True, 
+            "data": {
+                "present": total_present,
+                "late": total_late,
+                "absent": max(0, total_employees - total_present - total_leave),
+                "on_leave": total_leave,
+                "total": total_employees
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @app.post("/leaves/apply")
 def apply_leave(req: LeaveRequest):
     try:
