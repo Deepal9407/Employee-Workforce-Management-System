@@ -20,6 +20,14 @@
           :loading="loading"
         />
         <q-btn
+          color="secondary"
+          icon="download"
+          label="Export CSV"
+          unelevated
+          class="shadow-2"
+          @click="exportCSV"
+        />
+        <q-btn
           color="primary"
           icon="add"
           label="Add Employee"
@@ -616,7 +624,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { api } from 'src/boot/axios'
-import { useQuasar } from 'quasar'
+import { useQuasar, exportFile } from 'quasar'
 
 const $q = useQuasar()
 
@@ -812,6 +820,48 @@ const saveEmployee = async () => {
     $q.notify({ type: 'negative', message: errMsg })
   } finally {
     saving.value = false
+  }
+}
+
+function wrapCsvValue(val, formatFn, row) {
+  let formatted = formatFn !== void 0 ? formatFn(val, row) : val
+  formatted = formatted === void 0 || formatted === null ? '' : String(formatted)
+  formatted = formatted.split('"').join('""')
+  return `"${formatted}"`
+}
+
+const exportCSV = () => {
+  // basic csv export based on columns
+  const content = [columns.map((col) => wrapCsvValue(col.label))]
+    .concat(
+      employees.value.map((row) =>
+        columns
+          .map((col) =>
+            wrapCsvValue(
+              typeof col.field === 'function'
+                ? col.field(row)
+                : row[col.field === void 0 ? col.name : col.field],
+              col.format,
+              row,
+            ),
+          )
+          .join(','),
+      ),
+    )
+    .join('\r\n')
+
+  const status = exportFile(
+    `employee-directory-${new Date().toISOString().split('T')[0]}.csv`,
+    content,
+    'text/csv',
+  )
+
+  if (status !== true) {
+    $q.notify({
+      message: 'Browser denied file download...',
+      color: 'negative',
+      icon: 'warning',
+    })
   }
 }
 
