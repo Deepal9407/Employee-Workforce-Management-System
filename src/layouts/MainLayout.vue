@@ -14,6 +14,18 @@
 
         <div class="gt-xs">
           <template v-if="user">
+            <!-- Super Admin specifics -->
+            <q-chip
+              v-if="userRole === 'super_admin'"
+              color="negative"
+              text-color="white"
+              icon="security"
+              size="sm"
+              class="q-mr-sm text-weight-bold"
+            >
+              SUPER ADMIN
+            </q-chip>
+
             <q-btn
               flat
               label="Dashboard"
@@ -41,6 +53,15 @@
               to="/attendance"
               no-caps
               class="text-weight-medium text-grey-8"
+            />
+
+            <q-btn
+              v-if="userRole === 'super_admin'"
+              flat
+              label="Admin Settings"
+              to="/"
+              no-caps
+              class="text-weight-bold text-negative"
             />
           </template>
           <template v-else>
@@ -206,16 +227,29 @@ import { useQuasar } from 'quasar'
 const router = useRouter()
 const $q = useQuasar()
 const user = ref(null)
+const userRole = ref('')
+
+const fetchRole = async (userId) => {
+  const { data } = await supabase.from('user_roles').select('role').eq('user_id', userId).single()
+  if (data) {
+    userRole.value = data.role
+  } else {
+    userRole.value = 'employee'
+  }
+}
 
 onMounted(() => {
   // Get initial session
   supabase.auth.getSession().then(({ data: { session } }) => {
     user.value = session?.user || null
+    if (user.value) fetchRole(user.value.id)
   })
 
   // Listen for auth changes
   supabase.auth.onAuthStateChange((_event, session) => {
     user.value = session?.user || null
+    if (user.value) fetchRole(user.value.id)
+    else userRole.value = ''
   })
 })
 
