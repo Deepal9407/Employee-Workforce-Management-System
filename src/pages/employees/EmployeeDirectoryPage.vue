@@ -180,10 +180,7 @@
                       accept="image/*"
                       style="max-width: 250px"
                       clearable
-                      @update:model-value="
-                        (val) =>
-                          val ? (photoPreview = URL.createObjectURL(val)) : (photoPreview = null)
-                      "
+                      @update:model-value="onPhotoSelected"
                     >
                       <template v-slot:prepend><q-icon name="photo_camera" /></template>
                     </q-file>
@@ -741,6 +738,14 @@ const formData = ref({
   previous_employer: '',
   photo_url: '',
 })
+
+const onPhotoSelected = (val) => {
+  if (val) {
+    photoPreview.value = URL.createObjectURL(val)
+  } else {
+    photoPreview.value = null
+  }
+}
 
 const columns = [
   { name: 'epf_no', label: 'EPF No.', align: 'left', field: 'epf_no', sortable: true },
