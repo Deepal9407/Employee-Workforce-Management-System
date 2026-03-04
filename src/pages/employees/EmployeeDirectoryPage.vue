@@ -788,7 +788,8 @@ const extractDetailsFromNIC = (nic) => {
       date.setDate(date.getDate() - 1)
     }
 
-    formData.value.birthday = date.toISOString().split('T')[0]
+    const pad = (n) => String(n).padStart(2, '0')
+    formData.value.birthday = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
   }
 }
 
