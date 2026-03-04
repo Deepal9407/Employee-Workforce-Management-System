@@ -68,6 +68,23 @@
         no-data-label="No employees found"
         :pagination="{ rowsPerPage: 10 }"
       >
+        <template v-slot:body-cell-full_name="props">
+          <q-td :props="props">
+            <q-item dense class="q-pa-none">
+              <q-item-section avatar>
+                <q-avatar size="32px" color="blue-1" text-color="primary">
+                  <img v-if="props.row.photo_url" :src="props.row.photo_url" />
+                  <span v-else class="text-weight-bold">{{
+                    props.row.full_name ? props.row.full_name.charAt(0) : 'E'
+                  }}</span>
+                </q-avatar>
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{ props.row.full_name }}</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-td>
+        </template>
         <template v-slot:body-cell-status="props">
           <q-td :props="props">
             <q-chip
@@ -139,6 +156,39 @@
                 >Basic Information</q-card-section
               >
               <q-card-section class="row q-col-gutter-md">
+                <div class="col-12 flex flex-center q-mb-md">
+                  <div class="column items-center">
+                    <q-avatar
+                      size="100px"
+                      color="blue-2"
+                      text-color="primary"
+                      class="q-mb-sm shadow-2"
+                    >
+                      <img
+                        v-if="photoPreview || formData.photo_url"
+                        :src="photoPreview || formData.photo_url"
+                      />
+                      <span v-else class="text-h4 text-weight-bold">{{
+                        formData.full_name ? formData.full_name.charAt(0) : 'E'
+                      }}</span>
+                    </q-avatar>
+                    <q-file
+                      v-model="photoFile"
+                      outlined
+                      dense
+                      label="Profile Photo"
+                      accept="image/*"
+                      style="max-width: 250px"
+                      clearable
+                      @update:model-value="
+                        (val) =>
+                          val ? (photoPreview = URL.createObjectURL(val)) : (photoPreview = null)
+                      "
+                    >
+                      <template v-slot:prepend><q-icon name="photo_camera" /></template>
+                    </q-file>
+                  </div>
+                </div>
                 <div class="col-12 col-md-6">
                   <q-input
                     v-model="formData.epf_no"
@@ -408,7 +458,10 @@
             text-color="primary"
             class="q-mb-md text-h2 font-weight-bold shadow-3"
           >
-            {{ activeProfile.full_name ? activeProfile.full_name.charAt(0) : 'E' }}
+            <img v-if="activeProfile.photo_url" :src="activeProfile.photo_url" />
+            <span v-else>{{
+              activeProfile.full_name ? activeProfile.full_name.charAt(0) : 'E'
+            }}</span>
           </q-avatar>
           <div class="text-h5 text-weight-bold text-center">{{ activeProfile.full_name }}</div>
           <div class="text-subtitle1 text-blue-grey-2">{{ activeProfile.designation }}</div>
@@ -625,6 +678,7 @@
 import { ref, onMounted } from 'vue'
 import { api } from 'src/boot/axios'
 import { useQuasar, exportFile } from 'quasar'
+import { supabase } from 'src/boot/supabase'
 
 const $q = useQuasar()
 
@@ -637,6 +691,9 @@ const profileVisible = ref(false)
 const isEdit = ref(false)
 const saving = ref(false)
 const dummyFile = ref(null)
+
+const photoFile = ref(null)
+const photoPreview = ref(null)
 
 const activeProfile = ref(null)
 
@@ -682,6 +739,7 @@ const formData = ref({
   religion: '',
   ethnicity: '',
   previous_employer: '',
+  photo_url: '',
 })
 
 const columns = [
@@ -754,6 +812,8 @@ const fetchEmployees = async () => {
 }
 
 const openAddDialog = () => {
+  photoFile.value = null
+  photoPreview.value = null
   formData.value = {
     epf_no: '',
     full_name: '',
@@ -784,12 +844,15 @@ const openAddDialog = () => {
     religion: '',
     ethnicity: '',
     previous_employer: '',
+    photo_url: '',
   }
   isEdit.value = false
   dialogVisible.value = true
 }
 
 const openEditDialog = (row) => {
+  photoFile.value = null
+  photoPreview.value = null
   formData.value = { ...row }
   isEdit.value = true
   dialogVisible.value = true
@@ -803,6 +866,19 @@ const viewProfile = (row) => {
 const saveEmployee = async () => {
   saving.value = true
   try {
+    if (photoFile.value) {
+      const fileExt = photoFile.value.name.split('.').pop()
+      const fileName = `${Date.now()}_${formData.value.epf_no || Math.random().toString(36).substring(2)}.${fileExt}`
+      const { error } = await supabase.storage
+        .from('employee-photos')
+        .upload(fileName, photoFile.value)
+      if (error) throw error
+      const { data: publicUrlData } = supabase.storage
+        .from('employee-photos')
+        .getPublicUrl(fileName)
+      formData.value.photo_url = publicUrlData.publicUrl
+    }
+
     if (isEdit.value) {
       await api.put(
         `http://localhost:8000/update-employee/${formData.value.epf_no}`,
