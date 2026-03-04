@@ -9,7 +9,7 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 
 # Load frontend environment variables
-load_dotenv("../.env")
+load_dotenv()
 
 url = os.getenv("VITE_SUPABASE_URL")
 key = os.getenv("VITE_SUPABASE_ANON_KEY")

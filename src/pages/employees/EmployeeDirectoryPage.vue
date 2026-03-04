@@ -802,13 +802,13 @@ const extractDetailsFromNIC = (nic) => {
 const fetchEmployees = async () => {
   loading.value = true
   try {
-    const response = await api.get('http://localhost:8000/get-employees')
+    const response = await api.get('/get-employees')
     if (response.data.success) {
       employees.value = response.data.data
     }
   } catch (err) {
     if (err.message === 'Network Error') {
-      $q.notify({ type: 'negative', message: 'Could not connect to Python Backend on Port 8000.' })
+      $q.notify({ type: 'negative', message: 'Could not connect to Python Backend.' })
     } else {
       $q.notify({ type: 'negative', message: 'Failed to fetch directory data' })
     }
@@ -886,13 +886,10 @@ const saveEmployee = async () => {
     }
 
     if (isEdit.value) {
-      await api.put(
-        `http://localhost:8000/update-employee/${formData.value.epf_no}`,
-        formData.value,
-      )
+      await api.put(`/update-employee/${formData.value.epf_no}`, formData.value)
       $q.notify({ type: 'positive', message: 'Employee updated successfully' })
     } else {
-      await api.post('http://localhost:8000/add-employee', formData.value)
+      await api.post('/add-employee', formData.value)
       $q.notify({ type: 'positive', message: 'New employee added successfully' })
     }
     dialogVisible.value = false
