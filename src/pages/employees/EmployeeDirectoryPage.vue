@@ -893,8 +893,15 @@ const saveEmployee = async () => {
     dialogVisible.value = false
     fetchEmployees()
   } catch (err) {
-    const errMsg = err.response?.data?.detail || 'Failed to save changes.'
-    $q.notify({ type: 'negative', message: errMsg })
+    if (err.message === 'Network Error') {
+      $q.notify({
+        type: 'negative',
+        message: 'Could not connect to Python Backend. Is it running?',
+      })
+    } else {
+      const errMsg = err.response?.data?.detail || err.message || 'Failed to save changes.'
+      $q.notify({ type: 'negative', message: errMsg })
+    }
   } finally {
     saving.value = false
   }
