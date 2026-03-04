@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npx quasar build",
+  "outputDirectory": "dist/spa",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
