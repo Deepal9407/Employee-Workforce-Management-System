@@ -260,7 +260,7 @@ const leaveColumns = [
 const submitLeave = async () => {
   submittingLeave.value = true
   try {
-    const response = await api.post('http://localhost:8000/leaves/apply', leaveForm.value)
+    const response = await api.post('/leaves/apply', leaveForm.value)
     if (response.data.success) {
       $q.notify({ type: 'positive', message: 'Leave request submitted to Manager! Email sent.' })
       leaveForm.value = {
@@ -283,7 +283,7 @@ const submitLeave = async () => {
 const fetchLeaves = async () => {
   loadingLeaves.value = true
   try {
-    const response = await api.get('http://localhost:8000/leaves')
+    const response = await api.get('/leaves')
     if (response.data.success) {
       allLeaves.value = response.data.data
     }
@@ -301,7 +301,7 @@ const fetchLeaves = async () => {
 const updateLeaveStatus = async (id, status) => {
   try {
     $q.loading.show()
-    await api.put(`http://localhost:8000/leaves/${id}/status`, { status })
+    await api.put(`/leaves/${id}/status`, { status })
     $q.notify({ type: 'positive', message: `Leave ${status} successfully. Email dispatched.` })
     fetchLeaves() // Refresh data
   } catch (err) {

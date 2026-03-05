@@ -227,7 +227,7 @@ const fetchStatsAndLogs = () => {
 
 const fetchStats = async () => {
   try {
-    const res = await api.get('http://localhost:8000/attendance/stats/today')
+    const res = await api.get('/attendance/stats/today')
     if (res.data.success) {
       stats.value = res.data.data
     }
@@ -239,7 +239,7 @@ const fetchStats = async () => {
 const fetchAttendance = async () => {
   loading.value = true
   try {
-    let url = 'http://localhost:8000/attendance'
+    let url = '/attendance'
     if (filterDate.value) url += `?date=${filterDate.value}`
 
     const res = await api.get(url)
@@ -261,7 +261,7 @@ const submitManualPunch = async () => {
     // format as ISO 8601 UTC
     const dt = new Date(punchForm.value.punch_time)
 
-    await api.post('http://localhost:8000/attendance/manual-punch', {
+    await api.post('/attendance/manual-punch', {
       epf_no: punchForm.value.epf_no,
       punch_time: dt.toISOString(),
     })

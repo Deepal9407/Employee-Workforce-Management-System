@@ -308,7 +308,7 @@ const fetchDashboardData = async () => {
   loading.value = true
 
   try {
-    const res = await api.get('http://localhost:8000/dashboard/data')
+    const res = await api.get('/dashboard/data')
     if (res.data.success) {
       const dbData = res.data.data
 
