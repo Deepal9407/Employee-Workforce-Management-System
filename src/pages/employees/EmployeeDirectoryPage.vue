@@ -404,13 +404,13 @@
                   <div class="text-subtitle2 q-mb-md">Provided Documents</div>
                   <div class="row q-col-gutter-sm">
                     <q-checkbox
-                      v-model="formData.chk_appForm"
+                      v-model="formData.chk_appform"
                       label="Application Form"
                       class="col-6"
                     />
                     <q-checkbox v-model="formData.chk_nic" label="NIC Copy" class="col-6" />
                     <q-checkbox
-                      v-model="formData.chk_birthCert"
+                      v-model="formData.chk_birthcert"
                       label="Birth Certificate"
                       class="col-6"
                     />
@@ -620,8 +620,8 @@
                   <div class="row q-gutter-x-md">
                     <q-chip
                       size="sm"
-                      :color="activeProfile.chk_appForm ? 'positive' : 'grey-3'"
-                      :text-color="activeProfile.chk_appForm ? 'white' : 'dark'"
+                      :color="activeProfile.chk_appform ? 'positive' : 'grey-3'"
+                      :text-color="activeProfile.chk_appform ? 'white' : 'dark'"
                       >App Form</q-chip
                     >
                     <q-chip
@@ -632,8 +632,8 @@
                     >
                     <q-chip
                       size="sm"
-                      :color="activeProfile.chk_birthCert ? 'positive' : 'grey-3'"
-                      :text-color="activeProfile.chk_birthCert ? 'white' : 'dark'"
+                      :color="activeProfile.chk_birthcert ? 'positive' : 'grey-3'"
+                      :text-color="activeProfile.chk_birthcert ? 'white' : 'dark'"
                       >Birth Cert</q-chip
                     >
                     <q-chip
@@ -728,9 +728,9 @@ const formData = ref({
   emergency_contact: '',
   fingerprint_id: '',
   fingerprint_template: '',
-  chk_appForm: false,
+  chk_appform: false,
   chk_nic: false,
-  chk_birthCert: false,
+  chk_birthcert: false,
   chk_police: false,
   educational_qualification: '',
   religion: '',
@@ -842,9 +842,9 @@ const openAddDialog = () => {
     emergency_contact: '',
     fingerprint_id: '',
     fingerprint_template: '',
-    chk_appForm: false,
+    chk_appform: false,
     chk_nic: false,
-    chk_birthCert: false,
+    chk_birthcert: false,
     chk_police: false,
     educational_qualification: '',
     religion: '',

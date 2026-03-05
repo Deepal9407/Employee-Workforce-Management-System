@@ -57,9 +57,9 @@ class Employee(BaseModel):
     emergency_contact: str | None = None
     fingerprint_id: str | None = None
     fingerprint_template: str | None = None
-    chk_appForm: bool | None = False
+    chk_appform: bool | None = False
     chk_nic: bool | None = False
-    chk_birthCert: bool | None = False
+    chk_birthcert: bool | None = False
     chk_police: bool | None = False
     educational_qualification: str | None = None
     religion: str | None = None
@@ -153,6 +153,8 @@ def add_employee(emp: Employee):
             emp.probation_end_date = ped.strftime("%Y-%m-%d")
 
         data = emp.model_dump(exclude_none=True)
+        # Convert empty strings to None and filter them out to prevent type errors (like Postgres dates)
+        data = {k: v for k, v in data.items() if v != ""}
         response = supabase.table("employees").insert(data).execute()
 
         # 5. Data Versioning & Activity Logging
@@ -176,7 +178,9 @@ def get_employees():
 @app.put("/update-employee/{epf_no}")
 def update_employee(epf_no: str, emp: dict):
     try:
-        response = supabase.table("employees").update(emp).eq("epf_no", epf_no).execute()
+        # Convert empty strings to None to avoid Postgres type errors
+        emp_clean = {k: (v if v != "" else None) for k, v in emp.items()}
+        response = supabase.table("employees").update(emp_clean).eq("epf_no", epf_no).execute()
         
         increment_data_version()
         log_activity("Employee Updated", f"Employee details updated for EPF: {epf_no}")
